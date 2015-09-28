@@ -1,0 +1,59 @@
+---
+title: "Tooth Growth Exploration"
+author: "James Whedbee"
+date: "September 25, 2015"
+output: pdf_document
+---
+
+The purpose of this report is to investigate the Tooth Growth data set in the R datasets package.
+
+##Exploratory Analysis
+
+First, here is a brief summary of the Tooth Growth data:
+```{r,echo=FALSE,cache=TRUE}
+data("ToothGrowth")
+str(ToothGrowth)
+summary(ToothGrowth)
+```
+
+Below, you can see a plot of the distribution of the len variable, a plot of len split by supp, and a plot of len split by dose, respectively:
+
+```{r, echo=FALSE}
+hist(ToothGrowth$len)
+```
+
+```{r, echo=FALSE}
+plot(ToothGrowth$supp,ToothGrowth$len)
+```
+
+```{r, echo=FALSE}
+plot(ToothGrowth$dose,ToothGrowth$len)
+```
+
+##Comparing len by supp and dose
+
+###By supp
+
+Based on our exploratory analysis, it seems possible that length is greater when supp is "OJ" than when it is "VJ". To test this, a t-test was performed to compare the difference in means between the supps, with the null hypothesis that there was no difference in means.
+
+```{r, echo=TRUE}
+lenOfOJ <- ToothGrowth$len[ToothGrowth$supp=="OJ"]
+lenOfVC <- ToothGrowth$len[ToothGrowth$supp=="VC"]
+t.test(lenOfOJ,lenOfVC)
+```
+
+The 95% confidence interval does contain 0, so for now we accept the null hypothesis. The p-value was very close to .05, so it seems worthwhile to gather more data, which could help stengthen the evidence to reject the null hypothesis. 
+
+###By dose
+
+Based on our exploratory analysis, it seems possible that as length increases as dose increases. To test this, a t-test was performed to compare the difference in means between the doses, with the null hypothesis that there was no difference in means.
+
+```{r, echo=TRUE}
+lenOfDoseHalf <- ToothGrowth$len[ToothGrowth$dose==.5]
+lenOfDose1 <- ToothGrowth$len[ToothGrowth$dose==1]
+lenOfDose2 <- ToothGrowth$len[ToothGrowth$dose==2]
+t.test(lenOfDose1,lenOfDose2)
+t.test(lenOfDose1,lenOfDoseHalf)
+```
+
+Neither 95% confidence interval contains 0, so it is likely that there is a difference in len when split by dose. This conclusion is based on the assumption that the variance of the groups in question is the same. It was also assumed that there are no unobserved covariates which are contaminating the results.
