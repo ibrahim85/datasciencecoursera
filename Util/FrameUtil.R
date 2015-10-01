@@ -1,15 +1,28 @@
 library(dplyr)
 
-splitFrame <- function(frame)
-{
+splitFrame <- function(frame) {
+    # Randomly splits a data frame by rows into two equal sets for training and testing
+    #
+    # Args:
+    #   frame: Data frame to split
+    #
+    # Returns:
+    #   List containing the two halves of the data frame
     rows <- seq_len(nrow(frame))
     group1 <- sample(rows,length(rows)/2)
     group2 <- rows[!rows %in% group1]
-    assign("splitFrame",list(frame[group1,],frame[group2,]),envir=.GlobalEnv)
+    list(frame[group1,],frame[group2,])
 }
 
-addQuantiles <- function(frame,column,probs=seq(0,1,.25))
-{
+addQuantiles <- function(frame,column,probs=seq(0,1,.25)) {
+    # Adds a new column to a data frame which gives quantiles for an existing column
+    #
+    # Args:
+    #   frame:  Data frame to add quantiles
+    #   column: Column used to create quantiles
+    #   probs:  Vector of quantiles to use (see ?quantile)
+    # Returns:
+    #   Data frame with new column "Quant" of quantiles added
     q <- quantile(column,probs)
     cut <- cut(column, q, labels <- seq(length(probs)-1),include.lowest=TRUE)
     mutate(frame,Quant=cut)

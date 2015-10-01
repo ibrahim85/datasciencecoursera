@@ -1,6 +1,10 @@
 library(XML)
-scrapeDVOA <- function()
-{
+scrapeDVOA <- function(week) {
+    # Scrapes Football Outsiders website for their up to date DVOA data and saves it to a .csv
+    #
+    # Args:
+    #   week: Number of week the scrape is for. Will be used in file name.
+    #
     url <- "http://www.footballoutsiders.com/stats/teameff"
     html <- htmlTreeParse(url,useInternalNodes = TRUE)
     rows <- xpathSApply(html,"//tr",xmlValue)
@@ -27,13 +31,14 @@ scrapeDVOA <- function()
         }
     nflFrame <- data.frame(I(teams),nflData)
     names(nflFrame) <- c("Teams","DAVE","Off","Def","Total","ST")
-    nflFrame
-    filePath <- "~/datasciencecoursera/NFL/Data/2015Week3.csv"
+    filePath <- paste("~/datasciencecoursera/NFL/Data/2015Week",week,".csv",sep="")
     write.csv(nflFrame,filePath,row.names = FALSE)
-    #temp  <- read.csv(filePath,stringsAsFactors = FALSE)
 }
 
-scrapeOdds <- function()
-{
+scrapeOdds <- function() {
+    # Scrapes Scores and Odds website for their NFL betting trends and odds data
+    #
+    # Args:
+    #
     
 }
