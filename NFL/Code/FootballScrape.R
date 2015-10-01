@@ -9,7 +9,8 @@ scrapeDVOA <- function()
     OffCol <- 8
     DefCol <- 10
     TotCol <- 3
-    nflData <- matrix(nrow=0,ncol=4)
+    STCol <- 12
+    nflData <- matrix(nrow=0,ncol=5)
     teams <- matrix(nrow = 0,ncol=1)
     for (row in rows)
         {
@@ -20,14 +21,15 @@ scrapeDVOA <- function()
             Off <- as.numeric(sub("%","",trimws(rowVect[[1]][OffCol])))
             Def <- -1*as.numeric(sub("%","",trimws(rowVect[[1]][DefCol])))
             Tot <- as.numeric(sub("%","",trimws(rowVect[[1]][TotCol])))
+            ST <- as.numeric(sub("%","",trimws(rowVect[[1]][STCol])))
             teams <- rbind(teams,trimws(rowVect[[1]][teamCol]))
-            nflData <- rbind(nflData,c(DAVE,Off,Def,Tot))
+            nflData <- rbind(nflData,c(DAVE,Off,Def,Tot,ST))
         }
     nflFrame <- data.frame(I(teams),nflData)
-    names(nflFrame) <- c("Teams","DAVE","Off","Def","Total")
+    names(nflFrame) <- c("Teams","DAVE","Off","Def","Total","ST")
     nflFrame
-    #filePath <- "~/datasciencecoursera/NFL/Data/2015Week1.csv"
-    #write.csv(nflFrame,filePath,row.names = FALSE)
+    filePath <- "~/datasciencecoursera/NFL/Data/2015Week3.csv"
+    write.csv(nflFrame,filePath,row.names = FALSE)
     #temp  <- read.csv(filePath,stringsAsFactors = FALSE)
 }
 

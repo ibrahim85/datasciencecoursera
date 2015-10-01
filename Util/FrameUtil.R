@@ -1,3 +1,5 @@
+library(dplyr)
+
 splitFrame <- function(frame)
 {
     rows <- seq_len(nrow(frame))
