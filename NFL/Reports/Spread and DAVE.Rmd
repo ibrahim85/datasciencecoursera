@@ -1,0 +1,124 @@
+---
+title: "Predicting the Spread Itself"
+author: "James Whedee"
+date: "October 18, 2015"
+output: html_document
+---
+```{r, include=FALSE}
+source('~/datasciencecoursera/NFL/Code/GetWeekX.R')
+source('~/datasciencecoursera/Util/RegressionUtil.R')
+library(ggplot2)
+```
+
+##Describing Spread
+
+Here we have the distribution of spreads, with negative indicating that the home team is the favorite and positive indicating that the away team is the favorite. Data is from weeks 4, 6, 8, 9, and 16 of the 2014 season and weeks 2-6 of the 2015 season.
+
+From this we can see the following trends:
+
+####Home vs. Away
+
+* 1 in 3 spreads favor the away team
+* 2 in 3 spreads favor the home team
+* 1.3% of spreads are picks
+
+####Most common spreads
+
+* 1 in 4 spreads will be 3 for either team
+* 1 in 2 spreads will be: -1, -2, -3, -4, -6.5, -7, or 3
+* 2 in 3 spreads will be: -1, -2, -3, -3.5, -4, -6, -6.5, -7, -9, -10, 3, or 7
+
+####Away Team Favorites
+
+* 2 in 5 spreads favoring the away team are 3 point spreads
+* 1 in 2 spreads favoring the away team are 3 or 7 point spreads
+* The third most common spread favoring the away team is 5.5
+
+####Home Team Favorites
+
+* It is more likely to be a 1 or 2 point spread favoring the home team than 6.5 or 7
+* The rarest spreads under 10 are -1.5, -4.5, -5 ,-5.5, -8, -8.5, -9.5
+
+```{r, echo=FALSE}
+lm <- getNFLModel("Spread~HDAVE+VDAVE",c(-4,-6,-8,-9,-16,2,3,4,5,6))
+spreadFrame <- mutate(cleanWeeks(weeksFrame),projSpread=coef(model)[1]+coef(model)[2]*cleanWeekFrame$HDAVE+coef(model)[3]*cleanWeekFrame$VDAVE)
+count <- table(spreadFrame$Spread)
+props <- prop.table(count)
+plot(count,xlab="Spread",ylab="Count",main="Spread Distribution")
+abline(v=0,col="red",lty=5)
+props[order(props,decreasing=TRUE)]
+```
+
+##Exploratory Analysis
+
+The following is exploratory analysis on predicting the final spread of NFL games using statistics from Football Outsiders.
+
+As it turns out, DAVE is a very strong predictor of the Vegas spread. DAVE is a formula that combines pre-season rankings with regular season performance so the fact that it is correlated with the spread is unsurprising.
+
+```{r, echo=FALSE}
+lm <- getNFLModel("Spread~HDAVE+VDAVE",c(2,3,4,5,6,7))
+spreadFrame <- mutate(cleanWeeks(weeksFrame),projSpread=coef(model)[1]+coef(model)[2]*cleanWeekFrame$HDAVE+coef(model)[3]*cleanWeekFrame$VDAVE)
+plotConfandPredict(spreadFrame$projSpread,spreadFrame$Spread)
+```
+
+Residuals are normally distibuted, with SD of 2.6. Plot below shows proportion of correct guesses given a variable +-.
+```{r}
+plot(resid(model))
+quantile(abs(resid(model)))
+hist(resid(model))
+sd(resid(model))
+mean(abs(resid(model)))
+x <- seq(0,7,length=100)
+hx <- pnorm(0+x,0,sd(resid(model)))-pnorm(0-x,0,sd(resid(model)))
+plot(x,hx)
+```
+
+##Removing outliers from injuries
+
+Removing the main outliers, which are all a result of QB injury reduces the sd by quite a bit.
+
+```{r}
+qbInjuries <- c(34,39,46,50,61,63,71,72,75,78,80,90,92,95,99)
+cleanWeekPrime <- cleanWeekFrame[!(rownames(cleanWeekFrame) %in% qbInjuries),]
+modelPrime <- lm("Spread~HDAVE+VDAVE",data=cleanWeekPrime)
+summary(modelPrime)
+spreadFramePrime <- mutate(cleanWeekPrime,projSpread=coef(modelPrime)[1]+coef(modelPrime)[2]*cleanWeekPrime$HDAVE+coef(modelPrime)[3]*cleanWeekPrime$VDAVE)
+plotConfandPredict(spreadFramePrime$projSpread,spreadFramePrime$Spread)
+```
+
+Here is the new residual analysis.
+```{r}
+plot(resid(modelPrime))
+quantile(abs(resid(modelPrime)))
+hist(resid(modelPrime))
+sd(resid(modelPrime))
+mean(abs(resid(modelPrime)))
+x <- seq(0,7,length=100)
+hx <- pnorm(0+x,0,sd(resid(modelPrime)))-pnorm(0-x,0,sd(resid(modelPrime)))
+plot(x,hx)
+```
+
+##Adjusting for magnetic points 3/7
+Now, we will translate anything within 1-4 to 3 and within 6-9 to 7. The range from 4-6 will stay to hedge whether the line moves to 3 or 7. This means the residuals will no longer have normal distribution or mean of 0, but it will allow many more exactly correct projections.
+```{r,echo=FALSE}
+spreadFramePrime$projSpreadADJ <- ifelse((spreadFramePrime$projSpread < -1) & (spreadFramePrime$projSpread > -4),-3,spreadFramePrime$projSpread)
+spreadFramePrime$projSpreadADJ <- ifelse((spreadFramePrime$projSpread > 1) & (spreadFramePrime$projSpread < 4),3,spreadFramePrime$projSpreadADJ)
+spreadFramePrime$projSpreadADJ <- ifelse((spreadFramePrime$projSpread < -6) & (spreadFramePrime$projSpread > -9),-7,spreadFramePrime$projSpreadADJ)
+spreadFramePrime$projSpreadADJ <- ifelse((spreadFramePrime$projSpread > 6) & (spreadFramePrime$projSpread < 9),7,spreadFramePrime$projSpreadADJ)
+
+spreadFramePrime$projSpreadADJ <- ifelse(abs(spreadFramePrime$projSpreadADJ)<1,round(spreadFramePrime$projSpreadADJ) ,round(spreadFramePrime$projSpreadADJ/0.5)*0.5)
+
+spreadFramePrime$projSpreadRES <- spreadFramePrime$Spread-spreadFramePrime$projSpread
+spreadFramePrime$projSpreadADJRES <- spreadFramePrime$Spread-spreadFramePrime$projSpreadADJ
+```
+
+```{r}
+quantile(abs(spreadFramePrime$projSpreadRES))
+quantile(abs(spreadFramePrime$projSpreadADJRES))
+sd(spreadFramePrime$projSpreadRES)
+sd(spreadFramePrime$projSpreadADJRES)
+mean(abs(spreadFramePrime$projSpreadRES))
+mean(abs(spreadFramePrime$projSpreadADJRES))
+hist(abs(spreadFramePrime$projSpreadRES))
+hist(abs(spreadFramePrime$projSpreadADJRES))
+```

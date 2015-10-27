@@ -1,0 +1,117 @@
+---
+title: "Potential Week 4 NFL Model"
+author: "James Whedee"
+date: "October 14, 2015"
+output: html_document
+---
+
+```{r, include=FALSE}
+library(ggplot2)
+library(dplyr)
+VOffVSpec <- read.csv("~/datasciencecoursera/NFL/Data/WeeklyVOffVSpec4.csv")
+```
+##Exploratory Analysis
+
+The following is exploratory analysis of a Logistic regression model created after Week 4 of the 2015 NFL season. It is based off of the most recent weeks Offensive and Special Teams DVOA.
+
+The following is a plot of the number points by which the home team beat the spread against the model's predicted probability of the home team winning the game.
+
+```{r, echo=FALSE}
+plot(VOffVSpec$P.Home,VOffVSpec$Home.Cushion,xlim=c(0,1),xlab = "Home Win Probability",ylab="Home Points Over Spread")
+```
+
+The linear relationship between the two is quite strong. The interpretation of the coefficient is that for every .01 increase in the model's predicted probability of the home team winning, the expected margin by which the home team beats the spread increases by .24 points.
+
+```{r, echo=FALSE}
+bestFit <- lm(VOffVSpec$Home.Cushion~VOffVSpec$P.Home)
+summary(bestFit)
+
+```
+
+This model has several promising characteristics. For one, it has a very reasonable distribution of predicted winning probabilities, with most games a bunched in the middle 50%.
+
+```{r, echo=FALSE}
+quantile(VOffVSpec$P.Home)
+```
+
+Also promising for this model is how closely it fits to the point (.5,0) which is intuitively interpreted as a 50/50 prediction indicating that the teams would push.
+
+```{r, echo=FALSE}
+plot(VOffVSpec$P.Home,VOffVSpec$Home.Cushion,xlim=c(0,1),xlab = "Home Win Probability",ylab="Home Points Over Spread")
+abline(bestFit)
+abline(v=.5,h=0)
+```
+
+Finally, this model has residuals which diminish over time, which woud be expected from a predctive model as DVOA values become less variable.
+
+```{r, echo=FALSE}
+VOffVSpec <- mutate(VOffVSpec,resid=resid(bestFit))
+earlyWeeks <- abs(VOffVSpec$resid[VOffVSpec$Week<=3])
+laterWeeks <- abs(VOffVSpec$resid[VOffVSpec$Week>3])
+t.test(earlyWeeks,laterWeeks)
+```
+
+Here is a plot of the residuals showing no discernible underlying pattern.
+
+```{r, echo=FALSE}
+plot(VOffVSpec$P.Home,VOffVSpec$resid,xlim=c(0,1),xlab = "Home Win Probability",ylab="Residuals")
+```
+
+##Betting Strategy
+
+We can get an idea of "safe" bets by taking into account the current expectations for margins of error based on our residuals. Shown below are quantiles for the absolute values of the residuals in the "later weeks" where the residuals have decreased.
+
+```{r, echo=FALSE}
+quantile(abs(VOffVSpec$resid[VOffVSpec$Week>3]),probs = c(.4,.5,.6,.7,.8))
+```
+
+Absolute value was taken to be conservative, since we do not know which way the residuals will differ (in or against our favor). Since the residuals appear to be normally distributed, one could devise a more aggressive (and likely more accurate) system around the idea that only half of the expected residuals would cause a loss.
+
+In other words, these quantiles tell us that allowing ourselves an 8.74 point cushion will result in roughly a worst case scenario of a loss of 40% of our bets and in roughly an average case scenario of a loss of 20% of our bets.
+
+So, if we are willing to accept a 50% loss in the worst case with an average case of 25% losses, we would be looking for predicted winning probabilities that map to +-6.77.
+
+These would be home team winning probabilities of less than 23.1% and more than 78.3%.
+
+In this data set, that occurred in 9 of the 61 games and resulted in a betting record of 7-1-1.
+
+Further investigation would be needed to find the optimal cut-offs. Here's a nice visualization of prediction intervals at .5 (which would yield 25% losses). This indicates we will have 25% losses all games with predicted winning probabilities less than 18.3%
+
+```{r, echo=FALSE}
+source('~/datasciencecoursera/Util/RegressionUtil.R')
+plotConfandPredict(VOffVSpec$P.Home,VOffVSpec$Home.Cushion,predictLevel = .5)
+xyIntervals[((xyIntervals$upr<0)|(xyIntervals$lwr>0))&(xyIntervals$interval=="prediction"),c("lwr","upr","x")]
+```
+
+##Comparison to Equally Performing Model
+
+Finally, for comparison here is a similar attempt at this analysis on a logistic regression which is performing equally well to show that the behavior exhibited by this model is not simply a consequence of its current performance.
+
+```{r, echo=FALSE}
+HOffVSpec <- read.csv("~/datasciencecoursera/NFL/Data/IntrinsicHOffVSpec3.csv")
+plot(HOffVSpec$P.Home,HOffVSpec$Home.Cushion,xlim=c(0,1),xlab = "Home Win Probability",ylab="Home Points Over Spread")
+```
+
+This model has a very unreasonable distribution of predicted winning probabilities, with most games a bunched at the extremes.
+
+```{r, echo=FALSE}
+quantile(HOffVSpec$P.Home)
+```
+
+This model has a less convincing line of best fit, which is nowehere near the pivotal (.5,0) point.
+
+```{r, echo=FALSE}
+bestFit2 <- lm(HOffVSpec$Home.Cushion~HOffVSpec$P.Home)
+summary(bestFit2)
+plot(HOffVSpec$P.Home,HOffVSpec$Home.Cushion,xlim=c(0,1),xlab = "Home Win Probability",ylab="Home Points Over Spread")
+abline(bestFit2)
+abline(v=.5,h=0)
+```
+
+Here is a plot of the residuals showing how useless the regression is. There is almost no difference in the residuals and the original plot due to the weak slope of the line.
+
+```{r, echo=FALSE}
+HOffVSpec <- mutate(HOffVSpec,resid=resid(bestFit2))
+plot(HOffVSpec$P.Home,HOffVSpec$resid,xlim=c(0,1),xlab = "Home Win Probability",ylab="Residuals")
+```
+

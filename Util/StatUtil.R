@@ -22,7 +22,7 @@ getBinomErrorProbs <- function(success,trials,p1,p0=.5,alpha=.05, alternative = 
     c(Type1=error1,Type2=error2)
 }
 
-minSuccessAndSample <- function(alpha=.05, power=.8, p0=.5, p1=.6, two.sided=TRUE) {
+minBinomSuccessAndSample <- function(alpha=.05, power=.8, p0=.5, p1=.6, two.sided=TRUE) {
     # Computes the minimum requisite sample size and succes rate
     # for a binomial test to have acceptable Type I and II error probabilities
     #
@@ -36,7 +36,7 @@ minSuccessAndSample <- function(alpha=.05, power=.8, p0=.5, p1=.6, two.sided=TRU
     # Returns:
     #   Vector with number of successes first and number of trials second
     sides <- 1+two.sided #2 if TRUE, 1 if FALSE
-    trials <- nForBinomPow(power,p1)
+    trials <- nForBinomPow(power,p1,alpha=alpha,p0=p0)
     success <- qbinom(1-alpha/sides,trials,p0)
     c(Success=success,Trials=trials)
 }
@@ -74,6 +74,22 @@ getBinomPower <- function(p1,sampleRange=10:1000,alpha=.05,p0=.5) {
     cbind(n=sampleRange,power=power)
 }
 
+getHarmonicMean <- function(x){
+    # Computes the harmonic mean of a numeric vector
+    #
+    # Args:
+    #   x: Numeric vector
+    1/mean(1/x)
+}
+
+getGeometricMean <- function(x){
+    # Computes the geometric mean of a numeric vector
+    #
+    # Args:
+    #   x: Numeric vector
+    prod(x)^(1/length(x))
+}
+
 #
 #PLOTS
 #
@@ -103,4 +119,10 @@ plotBinomSampleByProb <- function(power=.8,probs=seq(.52,.65,.01),threshold=NULL
     plot(probs,sapply(probs,function(x) nForBinomPow(power,x,...)),xlab="P",ylab="N")
     if(!is.null(threshold$p)) abline(v=threshold$p)
     if(!is.null(threshold$n)) abline(h=threshold$n)
+}
+
+plotNormPowerBySample <- function(mean0=0,mean1=1,sd=1,alpha=.05,range=1:100){
+    quant <- qnorm(1-alpha,mean0,sd/sqrt(range))
+    power <- 1 - pnorm(quant,mean1,sd/sqrt(range))
+    plot(range,power)
 }

@@ -1,0 +1,139 @@
+---
+title: "ATS Record and ST DVOA"
+author: "James Whedee"
+date: "September 28, 2015"
+output: html_document
+---
+```{r, include=FALSE}
+library(dplyr)
+library(ggplot2)
+NFLCorr <- read.csv("~/datasciencecoursera/NFL/Data/ATSCorrleation.csv")
+NFLCorr$Year=factor(NFLCorr$Year)
+```
+##Exploratory Analysis
+
+The following is exploratory analysis on using special teams DVOA as tracked by Football Outsiders as a predictive tool for against the spread winning percentage of NFL teams.
+
+Here are the 2013 and 2014 ATS winning percentages of teams plotted as a function of their Week 3/4 ST DVOA, with line of best fit. Week 3/4 was chosen because for this to be of predictive value, early season statistics will need to be used. Week 1 analysis is not included here, but it was shown to be a poor predictive tool. 
+```{r, echo=FALSE}
+qplot(Week.3.4.ST.DVOA,ATS..,color=Year,data=NFLCorr)
+bestFit <- lm("NFLCorr$ATS..~NFLCorr$Week.3.4.ST.DVOA")
+#abline(bestFit,col="red")
+```
+
+Here is the same data with a logistic fit, zoomed out so that the shape of the curve is visibile. A logistic fit is more intuitive for modleing winning percentage since its domain is (0,1)
+```{r, echo=FALSE}
+#passing table of successes and failures to represent ATS %. Choosing to floor ties since mode lrequires integer counts.
+logistic <- glm(cbind(floor(16*ATS..),ceiling(16*(1-ATS..))) ~ Week.3.4.ST.DVOA,family=binomial(logit), data=NFLCorr)
+logCurve <- function(x) 1/(1+exp(-1*(as.numeric(coef(logistic)[1]+x*as.numeric(coef(logistic)[2])))))
+plot(NFLCorr$Week.3.4.ST.DVOA,NFLCorr$ATS..,xlim=c(-100,100),ylim=c(0,1))
+plot(logCurve,add=TRUE,,-100,100,col="red")
+```
+
+Summary of significance of line of best fit:
+```{r, echo=FALSE}
+summary(bestFit)
+```
+
+Results of correlation testing:
+```{r, echo=FALSE}
+cor.test(NFLCorr$Week.3.4.ST.DVOA,NFLCorr$ATS..)
+```
+
+Summary of significance of logistic fit:
+```{r, echo=FALSE}
+summary(logistic)
+```
+
+Exploratory analysis finds a significant correlation, suggesting week 3/4 ST DVOA can be used to predict ATS winning percentage.
+
+It should be noted that there is no significant correlation between week 3/4 ST DVOA and ATS in the 2012 season. This could be a result of changes in Vegas spreads, the calculation of ST DVOA, or conditions and rules within the NFL. Still, it is unlikely the 2013 and 2014 seasons can be passed off as coincidental.
+
+##Concrete Betting Strategy
+
+The optimal betting stategy would likely be a probit/logit regression taking into account ST DVOA and any other identified non-trivial regressors. This section will cover another possible strategy. The idea will be to find the optimal threshold for ST DVOA. It will propose to choose the top X ST DVOA teams after week 3/4 and bet on them to beat the spread for the remaining weeks of the season.
+
+There will be two factors that will affect the choice of X. First is the expected ATS record of teams above that threshold. Second is the number of teams above that threshold. X will be determined by maximizing the expected return in a single season given these competing factors.
+
+```{r, echo=TRUE}
+expectedValue <- function(team,method) 
+    #method 1 maximizes expected returns
+    #method 2 attempts to protect against variance by multiplying returns by a factor of games to bet on
+{
+    STDVOA <- team[2]
+    aboveST <- NFLCorr[NFLCorr$Week.3.4.ST.DVOA>=STDVOA,]
+    ATS <- mean(aboveST$ATS..)
+    returns <- (21*ATS-11)/11 #returns based on Vegas -110 vig
+    numRows <- nrow(NFLCorr[NFLCorr$Week.3.4.ST.DVOA>=STDVOA,])
+    if(method==1) factor <- 1
+    else factor <- numRows
+    c(numRows,returns*factor)
+}
+maxVector <- apply(select(NFLCorr,c(ATS..,Week.3.4.ST.DVOA)),1,expectedValue,method=1)
+factorVector <- apply(select(NFLCorr,c(ATS..,Week.3.4.ST.DVOA)),1,expectedValue,method=2)
+maxTeamsIndex <- which.max(maxVector[2,])
+factorTeamsIndex <- which.max(factorVector[2,])
+maxNumTeams <- maxVector[1,maxTeamsIndex]/2 #divide by two because 2 seasons of data used
+factorNumTeams <- factorVector[1,factorTeamsIndex]/2
+```
+The results indicate that `r maxNumTeams` teams per season maximizes returns and that `r factorNumTeams` maximizes returns multiplied by the number of available games to bet on.
+
+Since we must settle on an integer, we choose 9 because the expected value for 9 is higher than for 10. By examining the full vectors, we can also see that the max return for 9 teams is hardly different than for 5 teams, yet we have almost double the protection from variance.
+
+In conclusion, this model proposes to choose the top 9 ST DVOA teams after week 3/4 and bet on them to beat the spread for the remaining weeks of the season.
+
+Reversing the analysis for bottom ST DVOA teams pleasantly shows that the bottom 9 ST DVOA teams are the optimal choice for betting against to beat the spread for the remaining weeks of the season.
+
+In concrete terms:
+
+The mean ATS in 2013 and 2014 for the top 9 ST DVOA teams was .556 and .586 respectively. Assuming a vig of -110, these equate to returns of 6.06% and 11.79%.
+
+The mean ATS in 2013 and 2014 for the bottom 9 ST DVOA teams was .441 and .419 respectively. Assuming a vig of -110, these equate to returns of 6.72% and 10.94% when betting against.
+
+Over those two years, a proportion of .570 of bets made would be won, meaning a return of 8.88%.
+
+Finally, here is the original plot, with a vertical line showing the threshold of 9 teams per season and a horizontal line showing the break-even winning percentage given a -110 vig. The plot made for the bottom teams looks much the same, but is omitted here for clarity.
+```{r, echo=FALSE}
+with(NFLCorr, plot(Week.3.4.ST.DVOA,ATS..))
+abline(v=3.0,col="red")
+abline(h=.524,col="red")
+```
+
+##Exploring Clustering
+
+As an afterthought, let's look at a hierarchical clustering of our plot. Since we'll be using Euclidean distance in this investigation, we will first norm our data so as to not give undue preference to ST DVOA (which has much greater variance).
+
+```{r, echo=FALSE}
+normATS <- (NFLCorr$ATS..-mean(NFLCorr$ATS..))/sd(NFLCorr$ATS..)
+normST <- (NFLCorr$Week.3.4.ST.DVOA-mean(NFLCorr$Week.3.4.ST.DVOA))/sd(NFLCorr$Week.3.4.ST.DVOA)
+normedATSandST <- cbind(normATS,normST)
+plot(normedATSandST)
+```
+
+Now, we will cluster our normed data.
+
+```{r, echo=FALSE}
+distNormATSandST <- dist(normedATSandST)
+normCluster <- hclust(distNormATSandST)
+plot(normCluster)
+```
+
+There appear to be 4 roughly even clusters, so we will make our cuts there.
+
+```{r, echo=FALSE}
+clusterNFL <- cbind(NFLCorr$ATS..,NFLCorr$Week.3.4.ST.DVOA,cutree(normCluster,4))
+qplot(clusterNFL[,2],clusterNFL[,1],color=clusterNFL[,3])
+```
+
+This actually isolates the same 18 teams (average 9 per season) selected to maximize ATS in the earlier analysis. However, it selects 10 teams (average 5 per season) on the lower end.
+
+##Sources
+
+ATS data for 2013 pulled from
+http://www.sportingcharts.com/articles/nfl/nfl-against-the-spread-and-total-standings-2013-14-season.aspx
+
+ATS data for 2014 pulled from
+http://www.predictem.com/nfl/2014-ats-records.php
+
+ST DVOA pulled from various weeks by selecting the desired weeks from
+https://web.archive.org/web/*/http://www.footballoutsiders.com/stats/teameff

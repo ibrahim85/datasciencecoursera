@@ -27,3 +27,27 @@ addQuantiles <- function(frame,column,probs=seq(0,1,.25)) {
     cut <- cut(column, q, labels <- seq(length(probs)-1),include.lowest=TRUE)
     mutate(frame,Quant=cut)
 }
+
+getCorrelations <- function(frame, column,use="complete.obs"){
+    # Correlates one columns of a data frame with the others.
+    #
+    # Args:
+    #   frame:  Data frame with variables in question
+    #   column: Column used as main correlate
+    #   use:  See ?cor
+    # Returns:
+    #   Correlations for every other variable against the specified variable
+    # Assumes:
+    #   Data frame must be entirely numeric
+    correl <- cor(frame,use=use)[-which(names(frame) %in% c(column)),column]
+    correl[order(abs(correl),decreasing=TRUE)]
+}
+
+normFrame <- function(frame){
+    # Returns a normalized data frame
+    #
+    # Args:
+    #   frame:  Data frame to add quantiles
+    #
+    as.data.frame(scale(frame))
+}

@@ -1,0 +1,73 @@
+---
+title: "Motor Trend Regression"
+author: "James Whedee"
+date: "October 15, 2015"
+output: pdf_document
+---
+
+##Executive Summary
+
+On the surface, it appears that mpg of cars is related to the transmission. However, when accounting for the weight of cars we see the relationship vanish. It happens that most light cars are both more fuel efficient and manual, while most heavy cars are neither fuel efficient nor manual.
+
+After accounting for the effects of weight, there is no significant MPG difference between automatic and manual transmissions.
+
+##Exploratory Analysis
+
+Here is a quick overview of the mtcards dataset and which variables are most correlated with mpg in the mtcars dataset.
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(GGally)
+data("mtcars")
+str(mtcars)
+correlations <- cor(mtcars)[-which(names(mtcars) %in% c("mpg")),"mpg"]
+order <- order(abs(correlations),decreasing=TRUE)
+correlations[order]
+```
+
+With a scatterplot we can see that cars with manual transmissions tend to have higher MPG than cars with automatic transmission.
+
+```{r,echo=FALSE}
+mtcars$transmission <- factor(mtcars$am)
+levels(mtcars$transmission) <- c("auto","manual")
+ggplot(data=mtcars,aes(transmission,mpg))+geom_point()
+```
+
+A t-test indeicates that the difference in means is significant at p<.05
+
+```{r,echo=FALSE}
+auto <- mtcars$mpg[mtcars$transmission=="auto"]
+manual <- mtcars$mpg[mtcars$transmission=="manual"]
+t.test(auto,manual)
+```
+
+##Effect of Transmission on MPG
+
+Without accounting for any additional variables, our linear model predicts an increase of 7.245 MPG from 17.147 to 24.392 when switching from automatic to manual transmission. This is expected as these are the means of the two subsets, as seen in the t-test.
+
+```{r,echo=FALSE}
+coef(lm(mpg~am,data=mtcars))
+```
+
+However, it is worth noting that wt, cyl, disp, and hp are all storngly correlated with mpg. In order to most accurately describe the relationship between mpg and transmission, we will need to account for these variables.
+
+Accounting for wt (the most correlated variable), we see the effect of transmission almost completely vanish. The coefficient for transmission, which is interpreted as the difference in intercept of two parallel lines is so small (-.02) that instead of seeing a blue and red line, we see a single overlayed purple line in our plot.
+ 
+```{r,echo=FALSE}
+fit1 <- lm(data=mtcars,mpg~wt+transmission)
+summary(fit1)
+g1 <- ggplot(data=mtcars,aes(wt,mpg))+geom_point(aes(color=transmission))
+g1 <- g1 + geom_abline(intercept=coef(fit1)[1],slope=coef(fit1)[2],color="red",alpha=.2,size=2)
+g1 <- g1 + geom_abline(intercept=coef(fit1)[1]+coef(fit1)[3],slope=coef(fit1)[2],color="blue",alpha=.2,size=2)
+g1
+```
+
+Accounting for the interaction between weight and transmission creates two different lines, but the change in slope seems more to do with the non-linear relationship of weight and mpg, as cars asymptotically approach a theoretical baseline MPG. One can imagine that if there were more examples of light manual transmission cars or heavy autmoatic transmission cars, that the slopes would be more similar.
+
+```{r,echo=FALSE}
+fit2 <- lm(data=mtcars,mpg~wt*transmission)
+g1 <- ggplot(data=mtcars,aes(wt,mpg))+geom_point(aes(color=transmission))
+g1 <- g1 + geom_abline(intercept=coef(fit2)[1],slope=coef(fit2)[2],color="red")
+g1 <- g1 + geom_abline(intercept=coef(fit2)[1]+coef(fit2)[3],slope=coef(fit2)[2]+coef(fit2)[4],color="blue")
+g1
+```
