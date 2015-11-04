@@ -20,7 +20,7 @@ From this we can see the following trends:
 
 * 1 in 3 spreads favor the away team
 * 2 in 3 spreads favor the home team
-* 1.3% of spreads are picks
+* 1 in 50 spreads are picks
 
 ####Most common spreads
 
@@ -40,7 +40,7 @@ From this we can see the following trends:
 * The rarest spreads under 10 are -1.5, -4.5, -5 ,-5.5, -8, -8.5, -9.5
 
 ```{r, echo=FALSE}
-lm <- getNFLModel("Spread~HDAVE+VDAVE",c(-4,-6,-8,-9,-16,2,3,4,5,6))
+lm <- getNFLModel("Spread~HDAVE+VDAVE",c(-4,-6,-8,-9,-16,2,3,4,5,6,7,8))
 spreadFrame <- mutate(cleanWeeks(weeksFrame),projSpread=coef(model)[1]+coef(model)[2]*cleanWeekFrame$HDAVE+coef(model)[3]*cleanWeekFrame$VDAVE)
 count <- table(spreadFrame$Spread)
 props <- prop.table(count)
@@ -78,7 +78,7 @@ plot(x,hx)
 Removing the main outliers, which are all a result of QB injury reduces the sd by quite a bit.
 
 ```{r}
-qbInjuries <- c(34,39,46,50,61,63,71,72,75,78,80,90,92,95,99)
+qbInjuries <- c(34,39,46,51,62,64,73,74,77,80,82,93,95,98,103)
 cleanWeekPrime <- cleanWeekFrame[!(rownames(cleanWeekFrame) %in% qbInjuries),]
 modelPrime <- lm("Spread~HDAVE+VDAVE",data=cleanWeekPrime)
 summary(modelPrime)
