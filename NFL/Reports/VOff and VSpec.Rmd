@@ -2,7 +2,7 @@
 title: "Potential Week 4 NFL Model"
 author: "James Whedee"
 date: "October 14, 2015"
-output: html_document
+output: pdf_document
 ---
 
 ```{r, include=FALSE}

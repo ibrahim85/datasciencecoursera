@@ -2,7 +2,7 @@
 title: "Predicting the Spread Itself"
 author: "James Whedee"
 date: "October 18, 2015"
-output: html_document
+output: pdf_document
 ---
 ```{r, include=FALSE}
 source('~/datasciencecoursera/NFL/Code/GetWeekX.R')

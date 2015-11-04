@@ -2,7 +2,7 @@
 title: "ATS Record and ST DVOA"
 author: "James Whedee"
 date: "September 28, 2015"
-output: html_document
+output: pdf_document
 ---
 ```{r, include=FALSE}
 library(dplyr)
