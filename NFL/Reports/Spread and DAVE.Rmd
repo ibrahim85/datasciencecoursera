@@ -40,7 +40,7 @@ From this we can see the following trends:
 * The rarest spreads under 10 are -1.5, -4.5, -5 ,-5.5, -8, -8.5, -9.5
 
 ```{r, echo=FALSE}
-lm <- getNFLModel("Spread~HDAVE+VDAVE",c(-4,-6,-8,-9,-16,2,3,4,5,6,7,8))
+lm <- getNFLModel("Spread~HDAVE+VDAVE",c(-4,-6,-8,-9,-16,2,3,4,5,6,7,8,9))
 spreadFrame <- mutate(cleanWeeks(weeksFrame),projSpread=coef(model)[1]+coef(model)[2]*cleanWeekFrame$HDAVE+coef(model)[3]*cleanWeekFrame$VDAVE)
 count <- table(spreadFrame$Spread)
 props <- prop.table(count)

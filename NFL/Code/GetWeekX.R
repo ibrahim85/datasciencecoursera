@@ -1,7 +1,7 @@
 library(dplyr)
 library(combinat)
 
-getNFLModel <- function(formula,weeks=seq(17),noNA=TRUE,family=gaussian) {
+getNFLModel <- function(formula,weeks=seq(2,17),noNA=TRUE,family=gaussian) {
     # Runs regression on NFL data and stores results to global variable model
     #
     # Args:
@@ -36,7 +36,7 @@ getModel <- function(frame,formula,family=gaussian){
 }
 
 cleanWeeks <- function(frame){
-    cleanWeeks <- frame[,c(seq(11),24,25)]
+    cleanWeeks <- frame[,c(seq(11),24,25,26)]
     assign("cleanWeekFrame",cleanWeeks[,c(-1)],envir = .GlobalEnv)
 }
 

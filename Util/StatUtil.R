@@ -126,3 +126,15 @@ plotNormPowerBySample <- function(mean0=0,mean1=1,sd=1,alpha=.05,range=1:100){
     power <- 1 - pnorm(quant,mean1,sd/sqrt(range))
     plot(range,power)
 }
+
+principalComp <- function(frame){
+    #Performs PCA on a clean data frame and returns the confusion matrix
+    testIndex <- createDataPartition(frame[,1], p = 0.50,list=FALSE)
+    training <- frame[-testIndex,]
+    testing <- frame[testIndex,]
+    preProc <- preProcess(training[,-1],method="pca")
+    trainPC <- predict(preProc,training[,-1])
+    modelFit <- train(training[,1]~.,method="glm",data=trainPC)
+    testPC <- predict(preProc,testing[,-1])
+    confusionMatrix(testing[,1],predict(modelFit,testPC))
+}
