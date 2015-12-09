@@ -36,7 +36,7 @@ getModel <- function(frame,formula,family=gaussian){
 }
 
 cleanWeeks <- function(frame){
-    cleanWeeks <- frame[,c(seq(11),24,25,26)]
+    cleanWeeks <- frame[,c(seq(11),24,25,26,29)]
     assign("cleanWeekFrame",cleanWeeks[,c(-1)],envir = .GlobalEnv)
 }
 
